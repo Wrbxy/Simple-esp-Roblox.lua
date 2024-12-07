@@ -111,22 +111,30 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- Allow dragging the button
+local dragging = false
 local dragInput, mousePos, startPos
 
 toggleButton.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
         dragInput = input
         mousePos = UserInputService:GetMouseLocation() - toggleButton.AbsolutePosition
         startPos = toggleButton.Position
 
+        -- Dragging the button
         repeat
             local newPos = UserInputService:GetMouseLocation() - mousePos
             toggleButton.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
-
             RunService.RenderStepped:Wait()
-        until not dragInput.UserInputState == Enum.UserInputState.Begin
+        until not dragging
 
         dragInput = nil
+    end
+end)
+
+toggleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
     end
 end)
 
