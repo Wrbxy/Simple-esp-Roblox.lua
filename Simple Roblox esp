@@ -1,136 +1,27 @@
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+-- Requires the following libraries:
+local ESP = require(game:GetService("ReplicatedStorage"):WaitForChild("ESP"))
 
--- Settings
-local ESPEnabled = false
-local AimbotEnabled = false
-local FOVSize = 100
+-- Create a new ESP instance
+local esp = ESP.new()
 
--- Create a Screen GUI
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+-- Configure ESP settings
+esp.boxColor = Color3.fromRGB(255, 255, 255) -- White box
+esp.skeletonColor = Color3.fromRGB(0, 0, 255) -- Blue skeleton
+esp.nameTagColor = Color3.fromRGB(255, 255, 255) -- White name tag
+esp.healthBarSide = "Left" -- Health bar on the left
 
--- Frame for GUI
-local MenuFrame = Instance.new("Frame")
-MenuFrame.Size = UDim2.new(0, 200, 0, 150)
-MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
-MenuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MenuFrame.Parent = ScreenGui
+-- Add players to the ESP
+for _, player in ipairs(game.Players:GetPlayers()) do
+    local humanoid = player.Character:WaitForChild("HumanoidRootPart")
+    local nameTag = player.Character:WaitForChild("Head")
+    local healthBar = player.Character:WaitForChild("HealthBar")
 
--- ESP Toggle Button
-local espToggleButton = Instance.new("TextButton")
-espToggleButton.Size = UDim2.new(1, 0, 0, 50)
-espToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-espToggleButton.Text = "Toggle ESP"
-espToggleButton.Parent = MenuFrame
-
--- Aimbot Toggle Button
-local aimbotToggleButton = Instance.new("TextButton")
-aimbotToggleButton.Size = UDim2.new(1, 0, 0, 50)
-aimbotToggleButton.Position = UDim2.new(0, 0, 0, 50)
-aimbotToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-aimbotToggleButton.Text = "Toggle Aimbot"
-aimbotToggleButton.Parent = MenuFrame
-
--- FOV Size Input
-local fovSizeInput = Instance.new("TextBox")
-fovSizeInput.Size = UDim2.new(1, 0, 0, 50)
-fovSizeInput.Position = UDim2.new(0, 0, 0, 100)
-fovSizeInput.PlaceholderText = "FOV Size"
-fovSizeInput.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-fovSizeInput.Parent = MenuFrame
-
--- FOV Circle
-local FOVCircle = Instance.new("Frame")
-FOVCircle.Size = UDim2.new(0, FOVSize, 0, FOVSize)
-FOVCircle.Position = UDim2.new(0.5, -FOVSize / 2, 0.5, -FOVSize / 2)
-FOVCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-FOVCircle.BackgroundTransparency = 0.5
-FOVCircle.Visible = false
-FOVCircle.Parent = ScreenGui
-
--- ESP Functionality
-local function createESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = player.Character
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-        end
-    end
+    -- Create an ESP entry for the player
+    esp:AddEntry(humanoid, nameTag, healthBar)
 end
 
-local function removeESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local highlight = player.Character:FindFirstChildOfClass("Highlight")
-            if highlight then
-                highlight:Destroy()
-            end
-        end
-    end
+-- Update the ESP continuously
+while true do
+    esp:Update()
+    wait()
 end
-
--- Aimbot Functionality
-local function aimbot()
-    local closestPlayer = nil
-    local closestDistance = math.huge
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if distance < closestDistance and distance <= FOVSize then
-                closestDistance = distance
-                closestPlayer = player
-            end
-        end
-    end
-    
-    if closestPlayer then
-        local targetHead = closestPlayer.Character:FindFirstChild("Head")
-        if targetHead then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
-        end
-    end
-end
-
--- Toggle for ESP
-espToggleButton.MouseButton1Click:Connect(function()
-    ESPEnabled = not ESPEnabled
-    if ESPEnabled then
-        createESP()
-    else
-        removeESP()
-    end
-end)
-
--- Toggle for Aimbot
-aimbotToggleButton.MouseButton1Click:Connect(function()
-    AimbotEnabled = not AimbotEnabled
-end)
-
--- Update FOV Size
-fovSizeInput.FocusLost:Connect(function(entered)
-    if entered then
-        local size = tonumber(fovSizeInput.Text)
-        if size then
-            FOVSize = size
-            FOVCircle.Size = UDim2.new(0, FOVSize, 0, FOVSize)
-            FOVCircle.Visible = true
-        end
-    end
-end)
-
--- Update Loop
-RunService.RenderStepped:Connect(function()
-    if AimbotEnabled then
-        aimbot()
-    end
-    FOVCircle.Position = UDim2.new(0.5, -FOVSize / 2, 0.5, -FOVSize / 2)
-end)
-
-print("ESP and Aimbot Script Loaded")
