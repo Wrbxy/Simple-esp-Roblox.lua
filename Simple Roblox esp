@@ -1,49 +1,111 @@
-local players = game:GetService("Players")
-local runService = game:GetService("RunService")
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local FOVCircle = Instance.new("Frame")
+local Settings = {ESPColor = Color3.fromRGB(255, 0, 0), FOVSize = 100, ESPEnabled = false}
 
--- Function to draw a line (skeleton part) between two points
-local function createLine(startPos, endPos, color)
-    local line = Instance.new("Line")
-    line.From = startPos
-    line.To = endPos
-    line.Color = color
-    line.Transparency = 0 -- Fully opaque
-    line.Thickness = 2 -- Sets the thickness of the line
-    line.Parent = workspace
-    return line
+-- Create a simple screen GUI for the menu
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Size = UDim2.new(0, 200, 0, 150)
+MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MenuFrame.Parent = ScreenGui
+
+-- ESP Toggle Button
+local espToggle = Instance.new("TextButton")
+espToggle.Size = UDim2.new(1, 0, 0, 50)
+espToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+espToggle.Text = "Toggle ESP"
+espToggle.Parent = MenuFrame
+
+-- FOV Size Input
+local fovSizeInput = Instance.new("TextBox")
+fovSizeInput.Size = UDim2.new(1, 0, 0, 50)
+fovSizeInput.Position = UDim2.new(0, 0, 0, 50)
+fovSizeInput.PlaceholderText = "FOV Size"
+fovSizeInput.Parent = MenuFrame
+
+-- Function to Toggle ESP
+local function toggleESP()
+    Settings.ESPEnabled = not Settings.ESPEnabled
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            for _, char in pairs(player.Character:GetChildren()) do
+                if char:IsA("Model") and Settings.ESPEnabled then
+                    local highlight = Instance.new("Highlight", char)
+                    highlight.FillColor = Settings.ESPColor
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineTransparency = 0
+                end
+            end
+        end
+    end
 end
 
--- Function to draw the skeleton ESP
-local function drawSkeleton(player)
-    local character = player.Character
-    if not character or not character:FindFirstChild("Humanoid") then 
-        return 
+-- Function to Update FOV Circle
+local function updateFOVCircle()
+    FOVCircle.Size = UDim2.new(0, Settings.FOVSize, 0, Settings.FOVSize)
+    FOVCircle.Position = UDim2.new(0.5, -Settings.FOVSize/2, 0.5, -Settings.FOVSize/2)
+    FOVCircle.BackgroundColor3 = Color3.new(1, 1, 1) -- change to your preferred color
+    FOVCircle.Visible = true
+    FOVCircle.Parent = ScreenGui
+end
+
+-- Aimbot Functionality
+local function aimbot(target)
+    local mouse = LocalPlayer:GetMouse()
+    
+    if target and target.Character then
+        local head = target.Character:FindFirstChild("Head")
+        if head then
+            mouse.TargetFilter = target.Character
+            mouse.CaptureMouse()
+            mouse.Move:Connect(function()
+                if (head.Position - LocalPlayer.Character.Head.Position).Magnitude < Settings.FOVSize / 2 then
+                    mouse.Hit = head.CFrame
+                end
+            end)
+        end
+    end
+end
+
+espToggle.MouseButton1Click:Connect(function()
+    toggleESP()
+end)
+
+fovSizeInput.FocusLost:Connect(function(entered)
+    if entered then
+        local size = tonumber(fovSizeInput.Text)
+        if size then
+            Settings.FOVSize = size
+            updateFOVCircle()
+        end
+    end
+end)
+
+-- Run FOV Circle updater
+RunService.RenderStepped:Connect(updateFOVCircle)
+
+-- Update aimbot target (for demonstration, aim at nearest player)
+RunService.RenderStepped:Connect(function()
+    local target = nil
+    local closestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local distance = (player.Character.Head.Position - LocalPlayer.Character.Head.Position).Magnitude
+            if distance < closestDistance and Settings.ESPEnabled then
+                closestDistance = distance
+                target = player
+            end
+        end
     end
 
-    -- Define arms, legs, head and torso
-    local head = character:FindFirstChild("Head")
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    local leftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftArm")
-    local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightArm")
-    local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
-    local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
-
-    local color = Color3.fromRGB(255, 0, 0) -- Specify your color here, for example, red
-
-    -- Create lines representing bones of the skeleton
-    createLine(torso.Position, head.Position, color)         -- Torso to Head
-    createLine(torso.Position, leftArm.Position, color)     -- Torso to Left Arm
-    createLine(torso.Position, rightArm.Position, color)    -- Torso to Right Arm
-    createLine(torso.Position, leftLeg.Position, color)     -- Torso to Left Leg
-    createLine(torso.Position, rightLeg.Position, color)    -- Torso to Right Leg
-    createLine(leftArm.Position, rightArm.Position, color) -- Left Arm to Right Arm
-end
-
--- Main adding loop to render ESP
-runService.RenderStepped:Connect(function()
-    for _, player in ipairs(players:GetPlayers()) do
-        if player ~= players.LocalPlayer then
-            drawSkeleton(player)
-        end
+    if target then
+        aimbot(target)
     end
 end)
