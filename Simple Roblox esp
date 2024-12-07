@@ -46,27 +46,30 @@ end
 local function updateLineConnections()
     -- Clean up existing lines
     for _, line in ipairs(lineConnections) do
-        line:Destroy()
+        if line then
+            line:Destroy()
+        end
     end
     lineConnections = {}
 
     local players = Players:GetPlayers()
     for i = 1, #players do
         local playerA = players[i]
-        if not playerA.Character then continue end
-        local rootA = playerA.Character:FindFirstChild("HumanoidRootPart")
-        if not rootA then continue end
+        if not playerA.Character or not playerA.Character:FindFirstChild("HumanoidRootPart") then continue end
+        local rootA = playerA.Character.HumanoidRootPart
         
         for j = i + 1, #players do
             local playerB = players[j]
-            if not playerB.Character then continue end
-            local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
-            if not rootB then continue end
+            if not playerB.Character or not playerB.Character:FindFirstChild("HumanoidRootPart") then continue end
+            local rootB = playerB.Character.HumanoidRootPart
             
             -- Create a ray between the two HumanoidRootParts
-            local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
-            local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
+            local direction = (rootB.Position - rootA.Position).unit
+            local distance = (rootB.Position - rootA.Position).magnitude
+            local ray = Ray.new(rootA.Position, direction * distance)
+            local hit = Workspace:Raycast(ray.Origin, ray.Direction * distance)
 
+            -- Ensure the line is drawn only if the ray does not hit the other player
             if not hit or not hit.Instance:IsDescendantOf(playerB.Character) then
                 createLine(rootA.Position, rootB.Position) 
             end
@@ -86,6 +89,7 @@ end
 -- Function to set up ESP for each player
 local function setupESPForPlayer(player)
     player.CharacterAdded:Connect(function(character)
+        wait(1) -- Slight delay to ensure the character is fully loaded
         createESPBox(character)
 
         local humanoid = character:WaitForChild("Humanoid", 5) -- Wait for humanoid
