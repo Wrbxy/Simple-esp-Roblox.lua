@@ -1,24 +1,8 @@
 local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
 
--- Crosshair variables
-local camera = workspace.CurrentCamera
-local crosshairFrame = Instance.new("Frame")
+local blueColor = Color3.fromRGB(0, 0, 255)
 
--- Function to change crosshair color
-local function changeCrosshairColor()
-  local r = math.random(0, 1)
-  local g = math.random(0, 1)
-  local b = math.random(0, 1)
-  crosshairFrame.BackgroundColor3 = Color3.fromRGB(r, g, b)
-end
-
--- Function to rotate crosshair
-local function rotateCrosshair()
-  crosshairFrame.Rotation = crosshairFrame.Rotation + 1
-end
-
--- Function to create ESP with crosshair
 local function createESP(player)
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -28,26 +12,20 @@ local function createESP(player)
     esp.Size = UDim2.new(3, 0, 3, 0)
     esp.AlwaysOnTop = true
 
-    -- ... (Rest of the original ESP script)
-
-    -- Create SurfaceGui for crosshair (optional, for transparency)
+    -- Remove the Frame instance to remove the blue outline
     -- local surfaceGui = Instance.new("SurfaceGui")
     -- surfaceGui.Parent = esp
     -- surfaceGui.CanvasSize = UDim2.new(1, 0, 1, 0)
 
-    -- Create crosshair Frame (parent to SurfaceGui if used)
-    crosshairFrame.Parent = esp
-    crosshairFrame.Size = UDim2.new(0.1, 0, 0.1, 0)  -- Adjust size as needed
-    crosshairFrame.BackgroundColor3 = Color3.fromRGB(1, 1, 1) -- Initial white color
-
-    -- Connect functions to timer
-    game:GetService("RunService").Heartbeat:Connect(function(dt)
-        changeCrosshairColor()
-        rotateCrosshair()
-    end)
+    -- local frame = Instance.new("Frame")
+    -- frame.Parent = surfaceGui
+    -- frame.Size = UDIM2.new(1, 0, 1, 0)
+    -- frame.BackgroundColor3 = blueColor
+    -- frame.BorderSizePixel = 0
+    -- frame.Transparency = 0.5
 end
 
--- Apply ESP to existing players
+-- Apply ESP to all existing players
 for _, player in pairs(Players:GetPlayers()) do
     createESP(player)
 end
