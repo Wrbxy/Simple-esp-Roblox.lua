@@ -31,32 +31,31 @@ end
 local function drawESP(player)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
     local rootPart = player.Character.HumanoidRootPart
+    local head = player.Character:FindFirstChild("Head")
 
-    -- Check if the player is visible
-    local isVisible = rootPart and rootPart:IsPointInRegion3(Workspace.CurrentCamera.CFrame:PointToWorldSpace(rootPart.Position))
+    -- Convert positions to screen space
+    local headPos, headVisible = Workspace.CurrentCamera:WorldToViewportPoint(head.Position)
+    local rootPos, rootVisible = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
 
-    if isVisible then
-        local head = player.Character:FindFirstChild("Head")
+    if headVisible and rootVisible then
+        -- Draw outline for head
+        local outline = createOutline()
+        outline.PointA = Vector2.new(headPos.X, headPos.Y)
+        outline.PointB = Vector2.new(rootPos.X, rootPos.Y + 50) -- Slightly above the root
+        outline.PointC = Vector2.new(headPos.X - 10, headPos.Y + 20)
+        outline.Visible = true
+        table.insert(outlines, outline)
 
-        if head then
-            -- Draw outline for head
-            local outline = createOutline()
-            outline.PointA = Workspace.CurrentCamera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
-            outline.PointB = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position + Vector3.new(0, 2, 0))
-            outline.PointC = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position + Vector3.new(-0.5, 0, 0))
-            outline.Visible = true
-            table.insert(outlines, outline)
-
-            -- Draw lines to connect parts
-            for _, part in pairs(player.Character:GetChildren()) do
-                if part:IsA("MeshPart") or part:IsA("Part") then
-                    local partPos = part.Position
-                    local screenPos = Workspace.CurrentCamera:WorldToViewportPoint(partPos)
-
+        -- Draw lines to connect parts
+        for _, part in pairs(player.Character:GetChildren()) do
+            if part:IsA("MeshPart") or part:IsA("Part") then
+                local partPos, visible = Workspace.CurrentCamera:WorldToViewportPoint(part.Position)
+                
+                if visible then
                     -- Create a line from Head to each part
                     local connection = createLine()
                     connection.From = outline.PointA
-                    connection.To = Vector2.new(screenPos.X, screenPos.Y)
+                    connection.To = Vector2.new(partPos.X, partPos.Y)
                     connection.Visible = true
                     table.insert(connections, connection)
                 end
@@ -81,7 +80,7 @@ RunService.RenderStepped:Connect(function()
 
         -- Draw ESP for all players
         for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then 
+            if player ~= LocalPlayer and (player.Team ~= LocalPlayer.Team or not LocalPlayer.Team) then 
                 drawESP(player) 
             end
         end
@@ -90,10 +89,12 @@ end)
 
 -- Cleanup on player removal
 Players.PlayerRemoving:Connect(function(player)
-    for _, outline in pairs(outlines) do
-        outline:Remove()
+    for i = #outlines, 1, -1 do
+        outlines[i]:Remove()
+        table.remove(outlines, i)
     end
-    for _, connection in pairs(connections) do
-        connection:Remove()
+    for i = #connections, 1, -1 do
+        connections[i]:Remove()
+        table.remove(connections, i)
     end
 end)
