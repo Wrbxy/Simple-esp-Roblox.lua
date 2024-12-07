@@ -2,20 +2,20 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
 
--- Function to create a line (bone) between two parts
+-- Function to create a cylinder (bone) between two parts
 local function createBone(part1, part2)
     if not part1 or not part2 then return end
 
     local distance = (part1.Position - part2.Position).Magnitude
     local midPoint = (part1.Position + part2.Position) / 2
 
-    local line = Instance.new("Part")
-    line.Size = Vector3.new(0.1, 0.1, distance) -- Thin line
+    local line = Instance.new("Cylinder")
+    line.Size = Vector3.new(0.1, distance, 0.1) -- Thin cylinder
     line.Anchored = true
     line.CanCollide = false
     line.BrickColor = BrickColor.new("Bright blue")
     line.Material = Enum.Material.Neon
-    line.CFrame = CFrame.new(midPoint, part2.Position) * CFrame.new(0, 0, -distance / 2) -- Offset
+    line.CFrame = CFrame.new(midPoint, part2.Position) * CFrame.Angles(math.pi/2, 0, 0) -- Rotate to align with both parts
     line.Parent = workspace
 
     -- Clean up the line after a duration
@@ -46,7 +46,7 @@ local function onCharacterAdded(character)
         connection = RunService.RenderStepped:Connect(function()
             -- Clear previously drawn bones
             for _, obj in pairs(workspace:GetChildren()) do
-                if obj:IsA("Part") and obj.BrickColor == BrickColor.new("Bright blue") then
+                if obj:IsA("Cylinder") and obj.BrickColor == BrickColor.new("Bright blue") then
                     obj:Destroy()
                 end
             end
