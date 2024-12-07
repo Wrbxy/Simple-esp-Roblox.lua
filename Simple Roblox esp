@@ -1,46 +1,50 @@
+-- Get necessary services from Roblox
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
--- Table to hold ESP boxes for tracking
+-- Table to hold ESP boxes associated with players' characters
 local espBoxes = {}
 
--- Function to create ESP box outline
+-- Function to create an ESP box around a player's character
 local function createESPBox(character)
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local espBox = Instance.new("BoxHandleAdornment") -- Create a Box Handle Adornment for the outline
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end -- Ensure the HumanoidRootPart exists
 
-    espBox.Size = Vector3.new(4, 6, 2) -- Size of the outline box around the player
-    espBox.Color3 = Color3.new(0, 0, 1) -- Blue color
+    -- Create a Box Handle Adornment
+    local espBox = Instance.new("BoxHandleAdornment")
+    espBox.Size = Vector3.new(4, 6, 2) -- Size of the ESP box
+    espBox.Color3 = Color3.new(0, 0, 1) -- Color of the ESP box (blue)
     espBox.Transparency = 0.5 -- Semi-transparent
     espBox.ZIndex = 10
     espBox.Adornee = humanoidRootPart
-    espBox.Parent = humanoidRootPart -- Attach it to the HumanoidRootPart
+    espBox.Parent = humanoidRootPart -- Attach to HumanoidRootPart
 
-    -- Store the ESP box for cleanup later
-    espBoxes[character.UserId] = espBox
-
-    return espBox
+    -- Store the ESP box for cleanup
+    espBoxes[character] = espBox
 end
 
--- Function to clean up ESP box when character or player is removed
+-- Function to clean up the ESP box when a character is removed
 local function cleanupESP(character)
-    if espBoxes[character.UserId] then
-        espBoxes[character.UserId]:Destroy()
-        espBoxes[character.UserId] = nil
+    local espBox = espBoxes[character]
+    if espBox then
+        espBox:Destroy()
+        espBoxes[character] = nil
     end
 end
 
--- Function to set up ESP for the player
+-- Function to set up ESP for each player
 local function setupESPForPlayer(player)
     player.CharacterAdded:Connect(function(character)
         createESPBox(character)
 
-        -- Cleanup when the character is removed
-        character:WaitForChild("Humanoid").Died:Connect(function()
+        -- Connect to Humanoid Died event to clean up ESP
+        local humanoid = character:WaitForChild("Humanoid")
+
+        humanoid.Died:Connect(function()
             cleanupESP(character)
         end)
 
-        -- Clean up if the character is removed
+        -- Cleanup if the character is reset (removed)
         character.AncestryChanged:Connect(function(_, parent)
             if not parent then
                 cleanupESP(character)
@@ -48,15 +52,18 @@ local function setupESPForPlayer(player)
         end)
     end)
 
-    -- If the character already exists, create the ESP box
+    -- If the character already exists, create the ESP box immediately
     if player.Character then
         createESPBox(player.Character)
 
-        -- Cleanup for existing character
-        player.Character:WaitForChild("Humanoid").Died:Connect(function()
+        -- Connect to Humanoid Died event to clean up ESP
+        local humanoid = player.Character:WaitForChild("Humanoid")
+
+        humanoid.Died:Connect(function()
             cleanupESP(player.Character)
         end)
 
+        -- Cleanup for existing character when removed
         player.Character.AncestryChanged:Connect(function(_, parent)
             if not parent then
                 cleanupESP(player.Character)
@@ -65,10 +72,10 @@ local function setupESPForPlayer(player)
     end
 end
 
--- Initialize ESP for all current players
+-- Initialize ESP for all current players already in the game
 for _, player in ipairs(Players:GetPlayers()) do
     setupESPForPlayer(player)
 end
 
--- Handle new players joining the game
+-- Handle new players that join the game
 Players.PlayerAdded:Connect(setupESPForPlayer)
