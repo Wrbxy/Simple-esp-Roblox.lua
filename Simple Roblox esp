@@ -1,89 +1,47 @@
-local code = [[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Debris = game:GetService("Debris")
 
-local boneLines = {}
+-- Function to create ESP box outline
+local function createESPBox(character)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local espBox = Instance.new("BoxHandleAdornment") -- Create a Box Handle Adornment for the outline
 
--- Function to create a cylinder (bone) between two parts
-local function createBone(part1, part2)
-    if not part1 or not part2 then return end
+    espBox.Size = Vector3.new(4, 6, 2) -- Size of the outline box around the player
+    espBox.Color3 = Color3.new(0, 0, 1) -- Blue color
+    espBox.Transparency = 0.5 -- Semi-transparent
+    espBox.AlwaysOnTop = true
+    espBox.ZIndex = 10
+    espBox.Adornee = humanoidRootPart
+    espBox.Parent = humanoidRootPart -- Attach it to the HumanoidRootPart
 
-    local distance = (part1.Position - part2.Position).Magnitude
-    local midPoint = (part1.Position + part2.Position) / 2
+    -- Adjust the box's position to be centered on the player
+    runService.RenderStepped:Connect(function()
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            espBox.Adornee = humanoidRootPart
+        else
+            espBox:Destroy() -- Destroy if character disappears
+        end
+    end)
 
-    local line = Instance.new("Cylinder")
-    line.Size = Vector3.new(0.1, distance, 0.1) -- Thin cylinder
-    line.Anchored = true
-    line.CanCollide = false
-    line.BrickColor = BrickColor.new("Bright blue")
-    line.Material = Enum.Material.Neon
-    line.CFrame = CFrame.new(midPoint, part2.Position) * CFrame.Angles(math.pi / 2, 0, 0) -- Rotate to align with both parts
-    line.Parent = workspace
-
-    -- Clean up the line after a duration
-    Debris:AddItem(line, 5) -- Remove line after 5 seconds
-
-    return line
+    return espBox
 end
 
--- Function to update the skeleton lines based on character parts
-local function updateBones(character)
-    local head = character:FindFirstChild("Head")
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    local leftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftArm")
-    local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightArm")
-    local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
-    local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
+-- Function to set up ESP for the player
+local function setupESPForPlayer(player)
+    player.CharacterAdded:Connect(function(character)
+        createESPBox(character)
+    end)
 
-    -- Clear previous bones
-    for _, line in ipairs(boneLines) do
-        line:Destroy()
-    end
-    boneLines = {} -- Reinitialize boneLines table
-
-    -- Create lines between relevant body parts
-    if head and torso then table.insert(boneLines, createBone(head, torso)) end
-    if torso and leftArm then table.insert(boneLines, createBone(torso, leftArm)) end
-    if torso and rightArm then table.insert(boneLines, createBone(torso, rightArm)) end
-    if torso and leftLeg then table.insert(boneLines, createBone(torso, leftLeg)) end
-    if torso and rightLeg then table.insert(boneLines, createBone(torso, rightLeg)) end
-end
-
--- Function to handle character addition
-local function onCharacterAdded(character)
-    if character:WaitForChild("Humanoid") then
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            -- Draw bones every few frames (e.g., every 0.1 seconds)
-            wait(0.1)
-            updateBones(character)
-        end)
-
-        -- Clean up the connection when the character is removed
-        character.AncestryChanged:Connect(function(_, newParent)
-            if not newParent then
-                connection:Disconnect()
-            end
-        end)
-    end
-end
-
--- Function to create ESP for a player
-local function createESPForPlayer(player)
-    player.CharacterAdded:Connect(onCharacterAdded)
+    -- If the character already exists, create the ESP box
     if player.Character then
-        onCharacterAdded(player.Character)
+        createESPBox(player.Character)
     end
 end
 
--- Apply ESP for all existing players
+-- Initialize ESP for all current players
 for _, player in ipairs(Players:GetPlayers()) do
-    createESPForPlayer(player)
+    setupESPForPlayer(player)
 end
 
--- Apply ESP for new players joining the game
-Players.PlayerAdded:Connect(createESPForPlayer)
-]]
-
-loadstring(code)()
+-- Handle new players joining the game
+Players.PlayerAdded:Connect(setupESPForPlayer)
