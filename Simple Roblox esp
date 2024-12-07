@@ -3,24 +3,9 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 
 -- ESP settings
 local ESPEnabled = true
-
--- Create GUI
-local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-local screenGui = Instance.new("ScreenGui", playerGui)
-local toggleButton = Instance.new("TextButton", screenGui)
-
--- Button properties
-toggleButton.Size = UDim2.new(0, 100, 0, 50) -- Size of the button
-toggleButton.Position = UDim2.new(0.5, -50, 0.5, -25) -- Center of the screen
-toggleButton.Text = "ESP On"
-toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- Green background
-toggleButton.TextColor3 = Color3.new(1, 1, 1) -- White text
-toggleButton.Font = Enum.Font.SourceSans
-toggleButton.TextSize = 24
 
 -- Create drawings
 local outlines = {}
@@ -100,41 +85,6 @@ RunService.RenderStepped:Connect(function()
                 drawESP(player) 
             end
         end
-    end
-end)
-
--- Toggle ESP when button is clicked
-toggleButton.MouseButton1Click:Connect(function()
-    ESPEnabled = not ESPEnabled
-    toggleButton.Text = ESPEnabled and "ESP On" or "ESP Off"
-    toggleButton.BackgroundColor3 = ESPEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) -- Change color based on state
-end)
-
--- Allow dragging the button
-local dragging = false
-local dragInput, mousePos, startPos
-
-toggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragInput = input
-        mousePos = UserInputService:GetMouseLocation() - toggleButton.AbsolutePosition
-        startPos = toggleButton.Position
-
-        -- Dragging the button
-        repeat
-            local newPos = UserInputService:GetMouseLocation() - mousePos
-            toggleButton.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
-            RunService.RenderStepped:Wait()
-        until not dragging
-
-        dragInput = nil
-    end
-end)
-
-toggleButton.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
     end
 end)
 
