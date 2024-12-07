@@ -23,6 +23,12 @@ local function createESPBox(character)
     espBox.Parent = humanoidRootPart -- Attach to HumanoidRootPart
 
     espBoxes[character] = espBox -- Store the ESP box for cleanup
+
+    -- Cleanup the ESP box when character is removing
+    character:Destroying:Connect(function()
+        espBox:Destroy()
+        espBoxes[character] = nil
+    end)
 end
 
 -- Function to create a line between two points
@@ -64,12 +70,12 @@ local function updateLineConnections()
             -- Create a ray between the two HumanoidRootParts
             local direction = (rootB.Position - rootA.Position).unit
             local distance = (rootB.Position - rootA.Position).magnitude
-            local ray = Ray.new(rootA.Position, direction * distance)
-            local hit = Workspace:Raycast(ray.Origin, ray.Direction * distance)
 
-            if not hit then
+            local raycastResult = Workspace:Raycast(rootA.Position, direction * distance)
+
+            if not raycastResult then
                 createLine(rootA.Position, rootB.Position) -- Draw line if not hitting anything
-            }
+            end
         end
     end
 end
