@@ -1,9 +1,11 @@
 -- Get necessary services from Roblox
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- Table to hold ESP boxes associated with players' characters
+-- Table to hold ESP boxes and line connections associated with players' characters
 local espBoxes = {}
+local lineConnections = {}
 
 -- Function to create an ESP box around a player's character
 local function createESPBox(character)
@@ -17,13 +19,56 @@ local function createESPBox(character)
     espBox.Transparency = 0.5 -- Semi-transparent
     espBox.ZIndex = 10
     espBox.Adornee = humanoidRootPart
+    espBox.AlwaysOnTop = true -- Important to make it visible through walls
     espBox.Parent = humanoidRootPart -- Attach to HumanoidRootPart
 
     -- Store the ESP box for cleanup
     espBoxes[character] = espBox
 end
 
--- Function to clean up the ESP box when a character is removed
+-- Function to create a line between two points
+local function createLine(from, to)
+    local line = Instance.new("LineHandleAdornment")
+    line.Length = 1 -- This will automatically update, set it to 1 to avoid issues
+    line.Color3 = Color3.new(1, 0, 0) -- Color of the line (red)
+    line.Transparency = 0 -- Fully visible
+    line.ZIndex = 10
+    line.AlwaysOnTop = true
+    line.Parent = Workspace
+
+    return line
+end
+
+-- Function to update line connections
+local function updateLineConnections()
+    for _, line in pairs(lineConnections) do
+        line:Destroy()
+    end
+    lineConnections = {} -- Clear existing lines
+
+    local players = Players:GetPlayers()
+    for i = 1, #players do        
+        for j = i + 1, #players do
+            local playerA = players[i]
+            local playerB = players[j]
+
+            if playerA.Character and playerB.Character then
+                local rootA = playerA.Character:FindFirstChild("HumanoidRootPart")
+                local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
+
+                if rootA and rootB then
+                    -- Create a visual line if both players are alive and within sight
+                    local line = createLine(rootA.Position, rootB.Position)
+                    line.PointA = rootA.Position
+                    line.PointB = rootB.Position
+                    table.insert(lineConnections, line)
+                end
+            end
+        end
+    end
+end
+
+-- Function to clean up the ESP box and lines when a character is removed
 local function cleanupESP(character)
     local espBox = espBoxes[character]
     if espBox then
@@ -37,13 +82,11 @@ local function setupESPForPlayer(player)
     player.CharacterAdded:Connect(function(character)
         createESPBox(character)
 
-        -- Connect to Humanoid Died event to clean up ESP
         local humanoid = character:WaitForChild("Humanoid")
         humanoid.Died:Connect(function()
             cleanupESP(character)
         end)
 
-        -- Cleanup if the character is reset (removed)
         character.AncestryChanged:Connect(function(_, parent)
             if not parent then
                 cleanupESP(character)
@@ -55,13 +98,11 @@ local function setupESPForPlayer(player)
     if player.Character then
         createESPBox(player.Character)
 
-        -- Connect to Humanoid Died event to clean up ESP
         local humanoid = player.Character:WaitForChild("Humanoid")
         humanoid.Died:Connect(function()
             cleanupESP(player.Character)
         end)
 
-        -- Cleanup for existing character when removed
         player.Character.AncestryChanged:Connect(function(_, parent)
             if not parent then
                 cleanupESP(player.Character)
@@ -77,3 +118,6 @@ end
 
 -- Handle new players that join the game
 Players.PlayerAdded:Connect(setupESPForPlayer)
+
+-- Update line connections every frame
+RunService.RenderStepped:Connect(updateLineConnections)
