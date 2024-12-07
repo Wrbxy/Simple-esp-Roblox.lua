@@ -25,9 +25,11 @@ local function createESPBox(character)
     espBoxes[character] = espBox -- Store the ESP box for cleanup
 
     -- Cleanup the ESP box when character is removing
-    character:Destroying:Connect(function()
-        espBox:Destroy()
-        espBoxes[character] = nil
+    character.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            espBox:Destroy()
+            espBoxes[character] = nil
+        end
     end)
 end
 
