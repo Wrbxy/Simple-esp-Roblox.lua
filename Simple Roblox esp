@@ -1,100 +1,49 @@
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
 
--- ESP settings
-local ESPEnabled = true
-
--- Create drawings
-local outlines = {}
-local connections = {}
-
--- Function to create lines and outlines
-local function createLine() 
-    local line = Drawing.new("Line")
-    line.Color = Color3.new(1, 0, 0) -- Red color
-    line.Thickness = 2
+-- Function to draw a line (skeleton part) between two points
+local function createLine(startPos, endPos, color)
+    local line = Instance.new("Line")
+    line.From = startPos
+    line.To = endPos
+    line.Color = color
+    line.Transparency = 0 -- Fully opaque
+    line.Thickness = 2 -- Sets the thickness of the line
+    line.Parent = workspace
     return line
 end
 
-local function createOutline() 
-    local outline = Drawing.new("Triangle")
-    outline.Color = Color3.new(1, 1, 0) -- Yellow color
-    outline.Filled = false
-    outline.Thickness = 1
-    return outline
+-- Function to draw the skeleton ESP
+local function drawSkeleton(player)
+    local character = player.Character
+    if not character or not character:FindFirstChild("Humanoid") then 
+        return 
+    end
+
+    -- Define arms, legs, head and torso
+    local head = character:FindFirstChild("Head")
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    local leftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftArm")
+    local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightArm")
+    local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
+    local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
+
+    local color = Color3.fromRGB(255, 0, 0) -- Specify your color here, for example, red
+
+    -- Create lines representing bones of the skeleton
+    createLine(torso.Position, head.Position, color)         -- Torso to Head
+    createLine(torso.Position, leftArm.Position, color)     -- Torso to Left Arm
+    createLine(torso.Position, rightArm.Position, color)    -- Torso to Right Arm
+    createLine(torso.Position, leftLeg.Position, color)     -- Torso to Left Leg
+    createLine(torso.Position, rightLeg.Position, color)    -- Torso to Right Leg
+    createLine(leftArm.Position, rightArm.Position, color) -- Left Arm to Right Arm
 end
 
--- Draw ESP for a player
-local function drawESP(player)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
-    local rootPart = player.Character.HumanoidRootPart
-    local head = player.Character:FindFirstChild("Head")
-
-    -- Convert positions to screen space
-    local headPos, headVisible = Workspace.CurrentCamera:WorldToViewportPoint(head.Position)
-    local rootPos, rootVisible = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
-
-    if headVisible and rootVisible then
-        -- Draw outline for head
-        local outline = createOutline()
-        outline.PointA = Vector2.new(headPos.X, headPos.Y)
-        outline.PointB = Vector2.new(rootPos.X, rootPos.Y + 50) -- Slightly above the root
-        outline.PointC = Vector2.new(headPos.X - 10, headPos.Y + 20)
-        outline.Visible = true
-        table.insert(outlines, outline)
-
-        -- Draw lines to connect parts
-        for _, part in pairs(player.Character:GetChildren()) do
-            if part:IsA("MeshPart") or part:IsA("Part") then
-                local partPos, visible = Workspace.CurrentCamera:WorldToViewportPoint(part.Position)
-                
-                if visible then
-                    -- Create a line from Head to each part
-                    local connection = createLine()
-                    connection.From = outline.PointA
-                    connection.To = Vector2.new(partPos.X, partPos.Y)
-                    connection.Visible = true
-                    table.insert(connections, connection)
-                end
-            end
+-- Main adding loop to render ESP
+runService.RenderStepped:Connect(function()
+    for _, player in ipairs(players:GetPlayers()) do
+        if player ~= players.LocalPlayer then
+            drawSkeleton(player)
         end
-    end
-end
-
--- Update ESP every frame
-RunService.RenderStepped:Connect(function()
-    if ESPEnabled then
-        -- Clear previous outlines and connections
-        for _, outline in pairs(outlines) do
-            outline:Remove()
-        end
-        outlines = {}
-
-        for _, connection in pairs(connections) do
-            connection:Remove()
-        end
-        connections = {}
-
-        -- Draw ESP for all players
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and (player.Team ~= LocalPlayer.Team or not LocalPlayer.Team) then 
-                drawESP(player) 
-            end
-        end
-    end
-end)
-
--- Cleanup on player removal
-Players.PlayerRemoving:Connect(function(player)
-    for i = #outlines, 1, -1 do
-        outlines[i]:Remove()
-        table.remove(outlines, i)
-    end
-    for i = #connections, 1, -1 do
-        connections[i]:Remove()
-        table.remove(connections, i)
     end
 end)
