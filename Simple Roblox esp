@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
 
+local boneLines = {}
+
 -- Function to create a cylinder (bone) between two parts
 local function createBone(part1, part2)
     if not part1 or not part2 then return end
@@ -20,6 +22,8 @@ local function createBone(part1, part2)
 
     -- Clean up the line after a duration
     Debris:AddItem(line, 5) -- Remove line after 5 seconds
+
+    return line
 end
 
 -- Function to update the skeleton lines based on character parts
@@ -31,12 +35,18 @@ local function updateBones(character)
     local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
     local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
 
+    -- Clear previous bones
+    for _, line in ipairs(boneLines) do
+        line:Destroy()
+    end
+    boneLines = {} -- Reinitialize boneLines table
+
     -- Create lines between relevant body parts
-    if head and torso then createBone(head, torso) end
-    if torso and leftArm then createBone(torso, leftArm) end
-    if torso and rightArm then createBone(torso, rightArm) end
-    if torso and leftLeg then createBone(torso, leftLeg) end
-    if torso and rightLeg then createBone(torso, rightLeg) end
+    if head and torso then table.insert(boneLines, createBone(head, torso)) end
+    if torso and leftArm then table.insert(boneLines, createBone(torso, leftArm)) end
+    if torso and rightArm then table.insert(boneLines, createBone(torso, rightArm)) end
+    if torso and leftLeg then table.insert(boneLines, createBone(torso, leftLeg)) end
+    if torso and rightLeg then table.insert(boneLines, createBone(torso, rightLeg)) end
 end
 
 -- Function to handle character addition
@@ -44,14 +54,8 @@ local function onCharacterAdded(character)
     if character:WaitForChild("Humanoid") then
         local connection
         connection = RunService.RenderStepped:Connect(function()
-            -- Clear previously drawn bones
-            for _, obj in pairs(workspace:GetChildren()) do
-                if obj:IsA("Cylinder") and obj.BrickColor == BrickColor.new("Bright blue") then
-                    obj:Destroy()
-                end
-            end
-            
-            -- Draw bones
+            -- Draw bones every few frames (e.g., every 0.1 seconds)
+            wait(0.1)
             updateBones(character)
         end)
 
