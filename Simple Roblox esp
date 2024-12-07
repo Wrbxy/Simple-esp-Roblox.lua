@@ -1,25 +1,26 @@
+local Players = game:GetService("Players")
+local workspace = game:GetService("Workspace")
+
 local blueColor = Color3.fromRGB(0, 0, 255)
 
 local function createESP(player)
+    -- Wait for the character and its HumanoidRootPart to be loaded
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+    -- Create the BillboardGui for ESP
     local esp = Instance.new("BillboardGui")
     esp.Parent = humanoidRootPart
     esp.Size = UDim2.new(3, 0, 3, 0)
     esp.AlwaysOnTop = true
 
-    -- Remove the Frame instance to remove the blue outline
-    -- local surfaceGui = Instance.new("SurfaceGui")
-    -- surfaceGui.Parent = esp
-    -- surfaceGui.CanvasSize = UDim2.new(1, 0, 1, 0)
-
-    -- local frame = Instance.new("Frame")
-    -- frame.Parent = surfaceGui
-    -- frame.Size = UDim2.new(1, 0, 1, 0)
-    -- frame.BackgroundColor3 = blueColor
-    -- frame.BorderSizePixel = 0
-    -- frame.Transparency = 0.5
+    -- Create a Frame to act as the outline
+    local frame = Instance.new("Frame")
+    frame.Parent = esp
+    frame.Size = UDim2.new(1, 0, 1, 0) -- Fill the BillboardGui
+    frame.BackgroundColor3 = blueColor
+    frame.BorderSizePixel = 0
+    frame.Transparency = 0.5 -- Set transparency for the outline effect
 end
 
 -- Apply ESP to all existing players
