@@ -67,7 +67,7 @@ local function updateLineConnections()
             local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
             local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
 
-            if not hit or hit.Instance.Parent ~= playerB.Character then
+            if not hit or not hit.Instance:IsDescendantOf(playerB.Character) then
                 createLine(rootA.Position, rootB.Position) 
             end
         end
