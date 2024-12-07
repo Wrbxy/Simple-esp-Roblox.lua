@@ -51,6 +51,3 @@ end
 for _, player in pairs(Players:GetPlayers()) do
     createESP(player)
 end
-
--- Apply ESP to new players joining
-Players.PlayerAdded:Connect(createESP)
