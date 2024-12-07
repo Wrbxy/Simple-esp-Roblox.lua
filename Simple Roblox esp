@@ -61,13 +61,13 @@ local function updateLineConnections()
                 local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
 
                 if rootA and rootB then
-                    -- Check if there is line of sight between two players
+                    -- Create a ray between the two HumanoidRootParts
                     local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
 
                     local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
                     if not hit or hit.Instance.Parent ~= playerB.Character then
                         -- Create a visual line if both players are alive and there is line of sight
-                        local line = createLine(rootA.Position, rootB.Position)
+                        local line = createLine(rootA.Position, rootB.Position) 
                         table.insert(lineConnections, line)
                     end
                 end
@@ -90,10 +90,12 @@ local function setupESPForPlayer(player)
     player.CharacterAdded:Connect(function(character)
         createESPBox(character)
 
-        local humanoid = character:WaitForChild("Humanoid")
-        humanoid.Died:Connect(function()
-            cleanupESP(character)
-        end)
+        local humanoid = character:WaitForChild("Humanoid", 5) -- Wait for humanoid
+        if humanoid then
+            humanoid.Died:Connect(function()
+                cleanupESP(character)
+            end)
+        end
 
         character.AncestryChanged:Connect(function(_, parent)
             if not parent then
@@ -106,10 +108,12 @@ local function setupESPForPlayer(player)
     if player.Character then
         createESPBox(player.Character)
 
-        local humanoid = player.Character:WaitForChild("Humanoid")
-        humanoid.Died:Connect(function()
-            cleanupESP(player.Character)
-        end)
+        local humanoid = player.Character:WaitForChild("Humanoid", 5) -- Wait for humanoid
+        if humanoid then
+            humanoid.Died:Connect(function()
+                cleanupESP(player.Character)
+            end)
+        end
 
         player.Character.AncestryChanged:Connect(function(_, parent)
             if not parent then
