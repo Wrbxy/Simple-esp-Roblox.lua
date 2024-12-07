@@ -10,8 +10,8 @@ esp.skeletonColor = Color3.fromRGB(0, 0, 255) -- Blue skeleton
 esp.nameTagColor = Color3.fromRGB(255, 255, 255) -- White name tag
 esp.healthBarSide = "Left" -- Health bar on the left
 
--- Add players to the ESP
-for _, player in ipairs(game.Players:GetPlayers()) do
+-- Function to create an ESP entry for a player
+local function createESPEntry(player)
     local humanoid = player.Character:WaitForChild("HumanoidRootPart")
     local nameTag = player.Character:WaitForChild("Head")
     local healthBar = player.Character:WaitForChild("HealthBar")
@@ -19,6 +19,14 @@ for _, player in ipairs(game.Players:GetPlayers()) do
     -- Create an ESP entry for the player
     esp:AddEntry(humanoid, nameTag, healthBar)
 end
+
+-- Add existing players to the ESP
+for _, player in ipairs(game.Players:GetPlayers()) do
+    createESPEntry(player)
+end
+
+-- Add new players to the ESP when they join
+game.Players.PlayerAdded:Connect(createESPEntry)
 
 -- Update the ESP continuously
 while true do
