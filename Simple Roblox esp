@@ -2,41 +2,37 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 
 -- Settings
-local Settings = {
-    ESPColor = Color3.fromRGB(255, 0, 0),
-    FOVSize = 100,
-    ESPEnabled = false,
-    AimbotEnabled = false,
-}
+local ESPEnabled = false
+local AimbotEnabled = false
+local FOVSize = 100
 
--- Create GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Create a Screen GUI
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 
 -- Frame for GUI
 local MenuFrame = Instance.new("Frame")
-MenuFrame.Size = UDim2.new(0, 200, 0, 200)
-MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+MenuFrame.Size = UDim2.new(0, 200, 0, 150)
+MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
 MenuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 MenuFrame.Parent = ScreenGui
 
 -- ESP Toggle Button
-local espToggle = Instance.new("TextButton")
-espToggle.Size = UDim2.new(1, 0, 0, 50)
-espToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-espToggle.Text = "Toggle ESP"
-espToggle.Parent = MenuFrame
+local espToggleButton = Instance.new("TextButton")
+espToggleButton.Size = UDim2.new(1, 0, 0, 50)
+espToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+espToggleButton.Text = "Toggle ESP"
+espToggleButton.Parent = MenuFrame
 
 -- Aimbot Toggle Button
-local aimbotToggle = Instance.new("TextButton")
-aimbotToggle.Size = UDim2.new(1, 0, 0, 50)
-aimbotToggle.Position = UDim2.new(0, 0, 0, 50)
-aimbotToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-aimbotToggle.Text = "Toggle Aimbot"
-aimbotToggle.Parent = MenuFrame
+local aimbotToggleButton = Instance.new("TextButton")
+aimbotToggleButton.Size = UDim2.new(1, 0, 0, 50)
+aimbotToggleButton.Position = UDim2.new(0, 0, 0, 50)
+aimbotToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+aimbotToggleButton.Text = "Toggle Aimbot"
+aimbotToggleButton.Parent = MenuFrame
 
 -- FOV Size Input
 local fovSizeInput = Instance.new("TextBox")
@@ -48,46 +44,37 @@ fovSizeInput.Parent = MenuFrame
 
 -- FOV Circle
 local FOVCircle = Instance.new("Frame")
-FOVCircle.Size = UDim2.new(0, Settings.FOVSize, 0, Settings.FOVSize)
-FOVCircle.Position = UDim2.new(0.5, -Settings.FOVSize / 2, 0.5, -Settings.FOVSize / 2)
+FOVCircle.Size = UDim2.new(0, FOVSize, 0, FOVSize)
+FOVCircle.Position = UDim2.new(0.5, -FOVSize / 2, 0.5, -FOVSize / 2)
 FOVCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 FOVCircle.BackgroundTransparency = 0.5
 FOVCircle.Visible = false
 FOVCircle.Parent = ScreenGui
 
--- Function to Create ESP
-local function createESP(player)
-    if Settings.ESPEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local highlight = Instance.new("Highlight")
-        highlight.Parent = player.Character
-        highlight.FillColor = Settings.ESPColor
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-    end
-end
-
--- Function to Toggle ESP
-local function toggleESP()
-    Settings.ESPEnabled = not Settings.ESPEnabled
+-- ESP Functionality
+local function createESP()
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if Settings.ESPEnabled then
-                createESP(player)
-            else
-                if player.Character then
-                    local highlight = player.Character:FindFirstChildOfClass("Highlight")
-                    if highlight then
-                        highlight:Destroy()
-                    end
-                end
+        if player ~= LocalPlayer and player.Character then
+            if player.Character:FindFirstChild("HumanoidRootPart") then
+                local highlight = Instance.new("Highlight")
+                highlight.Parent = player.Character
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineTransparency = 0
             end
         end
     end
 end
 
--- Function to Update FOV Circle
-local function updateFOVCircle()
-    FOVCircle.Size = UDim2.new(0, Settings.FOVSize, 0, Settings.FOVSize)
+local function removeESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local highlight = player.Character:FindFirstChildOfClass("Highlight")
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+    end
 end
 
 -- Aimbot Functionality
@@ -98,7 +85,7 @@ local function aimbot()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if distance < closestDistance and distance <= Settings.FOVSize then
+            if distance < closestDistance and distance <= FOVSize then
                 closestDistance = distance
                 closestPlayer = player
             end
@@ -106,41 +93,46 @@ local function aimbot()
     end
     
     if closestPlayer then
-        local camera = workspace.CurrentCamera
         local targetHead = closestPlayer.Character:FindFirstChild("Head")
         if targetHead then
-            -- Aim at the target's head
-            camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
         end
     end
 end
 
--- Event connections
-espToggle.MouseButton1Click:Connect(function()
-    toggleESP()
+-- Toggle for ESP
+espToggleButton.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    if ESPEnabled then
+        createESP()
+    else
+        removeESP()
+    end
 end)
 
-aimbotToggle.MouseButton1Click:Connect(function()
-    Settings.AimbotEnabled = not Settings.AimbotEnabled
+-- Toggle for Aimbot
+aimbotToggleButton.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
 end)
 
+-- Update FOV Size
 fovSizeInput.FocusLost:Connect(function(entered)
     if entered then
         local size = tonumber(fovSizeInput.Text)
         if size then
-            Settings.FOVSize = size
-            updateFOVCircle()
+            FOVSize = size
+            FOVCircle.Size = UDim2.new(0, FOVSize, 0, FOVSize)
             FOVCircle.Visible = true
         end
     end
 end)
 
--- Run checks and updates
+-- Update Loop
 RunService.RenderStepped:Connect(function()
-    if Settings.AimbotEnabled then
+    if AimbotEnabled then
         aimbot()
     end
-    updateFOVCircle()
+    FOVCircle.Position = UDim2.new(0.5, -FOVSize / 2, 0.5, -FOVSize / 2)
 end)
 
 print("ESP and Aimbot Script Loaded")
