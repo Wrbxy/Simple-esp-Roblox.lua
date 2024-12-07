@@ -22,18 +22,21 @@ local function createESPBox(character)
     espBox.AlwaysOnTop = true -- Important to make it visible through walls
     espBox.Parent = humanoidRootPart -- Attach to HumanoidRootPart
 
-    -- Store the ESP box for cleanup
-    espBoxes[character] = espBox
+    espBoxes[character] = espBox -- Store the ESP box for cleanup
 end
 
 -- Function to create a line between two points
 local function createLine(from, to)
     local line = Instance.new("LineHandleAdornment")
-    line.Length = 1 -- This will automatically update, set it to 1 to avoid issues
+    line.Length = (to - from).magnitude -- Set the line length accordingly
     line.Color3 = Color3.new(1, 0, 0) -- Color of the line (red)
     line.Transparency = 0 -- Fully visible
     line.ZIndex = 10
     line.AlwaysOnTop = true
+
+    -- Set the points for the line, adjusting for position
+    line.PointA = from
+    line.PointB = to
     line.Parent = Workspace
 
     return line
@@ -41,10 +44,11 @@ end
 
 -- Function to update line connections
 local function updateLineConnections()
-    for _, line in pairs(lineConnections) do
+    -- Clean up existing lines
+    for _, line in ipairs(lineConnections) do
         line:Destroy()
     end
-    lineConnections = {} -- Clear existing lines
+    lineConnections = {}
 
     local players = Players:GetPlayers()
     for i = 1, #players do        
@@ -57,11 +61,15 @@ local function updateLineConnections()
                 local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
 
                 if rootA and rootB then
-                    -- Create a visual line if both players are alive and within sight
-                    local line = createLine(rootA.Position, rootB.Position)
-                    line.PointA = rootA.Position
-                    line.PointB = rootB.Position
-                    table.insert(lineConnections, line)
+                    -- Check if there is line of sight between two players
+                    local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
+
+                    local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
+                    if not hit or hit.Instance.Parent ~= playerB.Character then
+                        -- Create a visual line if both players are alive and there is line of sight
+                        local line = createLine(rootA.Position, rootB.Position)
+                        table.insert(lineConnections, line)
+                    end
                 end
             end
         end
