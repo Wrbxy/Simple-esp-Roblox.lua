@@ -11,19 +11,19 @@ esp.healthBarSide = "Left" -- Health bar on the left
 
 -- Function to create an ESP entry for a player
 local function createESPEntry(player)
+    -- Make sure to connect to CharacterAdded first
     player.CharacterAdded:Connect(function(character)
         -- Ensure that necessary parts are present
         local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5) -- Wait for 5 seconds max
         local nameTag = character:WaitForChild("Head", 5) -- Wait for 5 seconds max
 
-        -- Check if health bar exists or create a default one
+        -- Create a health bar if it doesn't exist
         local healthBar = character:FindFirstChild("HealthBar")
         if not healthBar then
-            -- You can create a default health bar here or handle it accordingly
-            -- For example:
             healthBar = Instance.new("Part")
             healthBar.Name = "HealthBar"
-            healthBar.Size = Vector3.new(1, 1, 1) -- Adjust this to a suitable size
+            healthBar.Size = Vector3.new(0.5, 0.1, 0.5) -- Adjust to a more suitable health bar size
+            healthBar.Anchored = true -- Prevent movement
             healthBar.Parent = character
         end
 
@@ -31,7 +31,7 @@ local function createESPEntry(player)
         esp:AddEntry(humanoidRootPart, nameTag, healthBar)
     end)
 
-    -- If the player's character already exists
+    -- If the player's character already exists, we invoke the function manually
     if player.Character then
         createESPEntry(player)
     end
