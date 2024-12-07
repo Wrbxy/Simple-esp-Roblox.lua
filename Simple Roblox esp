@@ -1,53 +1,51 @@
--- Get necessary services from Roblox
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
--- Table to hold ESP boxes and line connections associated with players' characters
+-- Table to hold ESP boxes and line connections
 local espBoxes = {}
 local lineConnections = {}
 
 -- Function to create an ESP box around a player's character
 local function createESPBox(character)
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end -- Ensure the HumanoidRootPart exists
+    if not humanoidRootPart then return end
 
     -- Create a Box Handle Adornment
     local espBox = Instance.new("BoxHandleAdornment")
-    espBox.Size = Vector3.new(4, 6, 2) -- Size of the ESP box
-    espBox.Color3 = Color3.new(0, 0, 1) -- Color of the ESP box (blue)
-    espBox.Transparency = 0.5 -- Semi-transparent
+    espBox.Size = Vector3.new(4, 6, 2)
+    espBox.Color3 = Color3.new(0, 0, 1)
+    espBox.Transparency = 0.5
     espBox.ZIndex = 10
     espBox.Adornee = humanoidRootPart
-    espBox.AlwaysOnTop = true -- Important to make it visible through walls
+    espBox.AlwaysOnTop = true
     espBox.Parent = humanoidRootPart
 
-    espBoxes[character] = espBox -- Store the ESP box for cleanup
+    espBoxes[character] = espBox
 
-    -- Cleanup the ESP box when character dies
-    character.Humanoid:Connect(function(humanoid)
-        humanoid.Died:Connect(function()
+    -- Cleanup the ESP box when the character leaves
+    character.AncestryChanged:Connect(function(node)
+        if node == nil then
             espBox:Destroy()
             espBoxes[character] = nil
-        end)
+        end
     end)
 end
 
 -- Function to create a line between two points
 local function createLine(from, to)
     local line = Instance.new("LineHandleAdornment")
-    line.Length = (to - from).magnitude -- Set the line length accordingly
-    line.Color3 = Color3.new(1, 0, 0) -- Color of the line (red)
-    line.Transparency = 0 -- Fully visible
+    line.Length = (to - from).magnitude
+    line.Color3 = Color3.new(1, 0, 0)
+    line.Transparency = 0
     line.ZIndex = 10
     line.AlwaysOnTop = true
 
-    -- Set the points for the line
     line.PointA = from
     line.PointB = to
     line.Parent = Workspace
 
-    table.insert(lineConnections, line) -- Store line for cleanup
+    table.insert(lineConnections, line)
 end
 
 -- Function to update line connections
@@ -59,7 +57,7 @@ local function updateLineConnections()
     lineConnections = {}
 
     local players = Players:GetPlayers()
-    for i = 1, #players do
+    for i = 1, #players - 1 do
         local playerA = players[i]
         if not playerA.Character or not playerA.Character:FindFirstChild("HumanoidRootPart") then continue end
         local rootA = playerA.Character.HumanoidRootPart
@@ -68,15 +66,15 @@ local function updateLineConnections()
             local playerB = players[j]
             if not playerB.Character or not playerB.Character:FindFirstChild("HumanoidRootPart") then continue end
             local rootB = playerB.Character.HumanoidRootPart
-            
+
             -- Create a ray between the two HumanoidRootParts
-            local direction = (rootB.Position - rootA.Position).unit
-            local distance = (rootB.Position - rootA.Position).magnitude
+            local direction = (rootB.Position - rootA.Position).Unit
+            local distance = (rootB.Position - rootA.Position).Magnitude
 
             local raycastResult = Workspace:Raycast(rootA.Position, direction * distance)
 
-            if not raycastResult then
-                createLine(rootA.Position, rootB.Position) -- Draw line if not hitting anything
+            if not raycastResult or not raycastResult.Instance:IsDescendantOf(playerB.Character) then
+                createLine(rootA.Position, rootB.Position)
             end
         end
     end
@@ -85,7 +83,7 @@ end
 -- Function to handle player joining
 local function onPlayerAdded(player)
     player.CharacterAdded:Connect(function(character)
-        createESPBox(character) -- Create ESP when the character is added
+        createESPBox(character)
     end)
 end
 
@@ -93,4 +91,9 @@ end
 Players.PlayerAdded:Connect(onPlayerAdded)
 
 -- Optionally add existing players
-for _, player in ipairs(Players:GetPlayers
+for _, player in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(player)
+end
+
+-- Run the ESP update loop
+RunService.RenderStepped:Connect(updateLineConnections)
