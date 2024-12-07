@@ -31,14 +31,12 @@ local function updateBones(character)
     local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
     local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
 
-    -- Create lines between body parts
-    createBone(head, torso)
-    createBone(torso, leftArm)
-    createBone(torso, rightArm)
-    createBone(torso, leftLeg)
-    createBone(torso, rightLeg)
-
-    -- Additional bones can be added here if desired
+    -- Create lines between relevant body parts
+    if head and torso then createBone(head, torso) end
+    if torso and leftArm then createBone(torso, leftArm) end
+    if torso and rightArm then createBone(torso, rightArm) end
+    if torso and leftLeg then createBone(torso, leftLeg) end
+    if torso and rightLeg then createBone(torso, rightLeg) end
 end
 
 -- Function to handle character addition
