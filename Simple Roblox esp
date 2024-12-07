@@ -1,5 +1,5 @@
 -- Get necessary services from Roblox
-local Players = game:GetService("Players")
+ Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
