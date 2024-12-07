@@ -1,52 +1,38 @@
-local ESP = require(game:GetService("ReplicatedStorage"):WaitForChild("ESP"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local ESPModule = require(ReplicatedStorage:WaitForChild("ESP"))
 
--- Create a new ESP instance
-local esp = ESP.new()
+local espInstance = ESPModule
 
--- Configure ESP settings
-esp.boxColor = Color3.fromRGB(255, 255, 255) -- White box
-esp.skeletonColor = Color3.fromRGB(0, 0, 255) -- Blue skeleton
-esp.nameTagColor = Color3.fromRGB(255, 255, 255) -- White name tag
-esp.healthBarSide = "Left" -- Health bar on the left
-
--- Function to create an ESP entry for a player
 local function createESPEntry(player)
-    -- Make sure to connect to CharacterAdded first
+    -- Function to connect new characters to ESP
     player.CharacterAdded:Connect(function(character)
-        -- Ensure that necessary parts are present
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5) -- Wait for 5 seconds max
-        local nameTag = character:WaitForChild("Head", 5) -- Wait for 5 seconds max
+        character:WaitForChild("HumanoidRootPart") -- Ensure HumanoidRootPart exists
+        espInstance:AddEntry(character)
 
-        -- Create a health bar if it doesn't exist
-        local healthBar = character:FindFirstChild("HealthBar")
-        if not healthBar then
-            healthBar = Instance.new("Part")
-            healthBar.Name = "HealthBar"
-            healthBar.Size = Vector3.new(0.5, 0.1, 0.5) -- Adjust to a more suitable health bar size
-            healthBar.Anchored = true -- Prevent movement
-            healthBar.Parent = character
-        end
-
-        -- Create an ESP entry for the player
-        esp:AddEntry(humanoidRootPart, nameTag, healthBar)
+        -- Cleanup if the character is removed
+        character.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                espInstance:RemoveEntry(character)
+            end
+        end)
     end)
 
-    -- If the player's character already exists, we invoke the function manually
+    -- If the player's character exists already, add ESP immediately
     if player.Character then
-        createESPEntry(player)
+        espInstance:AddEntry(player.Character)
     end
 end
 
--- Add existing players to the ESP
-for _, player in ipairs(game.Players:GetPlayers()) do
+-- Get existing players and add their ESP
+for _, player in ipairs(Players:GetPlayers()) do
     createESPEntry(player)
 end
 
--- Add new players to the ESP when they join
-game.Players.PlayerAdded:Connect(createESPEntry)
+-- Connect the PlayerAdded event for future players
+Players.PlayerAdded:Connect(createESPEntry)
 
--- Update the ESP continuously
 while true do
-    esp:Update()
-    wait()
+    espInstance:Update()
+    wait(1) -- Update every second
 end
