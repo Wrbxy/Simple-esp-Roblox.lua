@@ -20,16 +20,16 @@ local function createESPBox(character)
     espBox.ZIndex = 10
     espBox.Adornee = humanoidRootPart
     espBox.AlwaysOnTop = true -- Important to make it visible through walls
-    espBox.Parent = humanoidRootPart -- Attach to HumanoidRootPart
+    espBox.Parent = humanoidRootPart
 
     espBoxes[character] = espBox -- Store the ESP box for cleanup
 
-    -- Cleanup the ESP box when character is removing
-    character.AncestryChanged:Connect(function(_, parent)
-        if not parent then
+    -- Cleanup the ESP box when character dies
+    character.Humanoid:Connect(function(humanoid)
+        humanoid.Died:Connect(function()
             espBox:Destroy()
             espBoxes[character] = nil
-        end
+        end)
     end)
 end
 
@@ -93,9 +93,4 @@ end
 Players.PlayerAdded:Connect(onPlayerAdded)
 
 -- Optionally add existing players
-for _, player in ipairs(Players:GetPlayers()) do
-    onPlayerAdded(player)
-end
-
--- Run the ESP update loop
-RunService.RenderStepped:Connect(updateLineConnections)
+for _, player in ipairs(Players:GetPlayers
