@@ -94,5 +94,4 @@ local function setupESPForPlayer(player)
 
         local humanoid = character:WaitForChild("Humanoid", 5) -- Wait for humanoid
         if humanoid then
-            humanoid.Died:Connect(function()
-                cleanupESP(
+            humanoid.Died:Connect(
