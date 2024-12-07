@@ -1,48 +1,80 @@
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
-local blueColor = Color3.fromRGB(0, 0, 255)
+local function createBone(part1, part2)
+    local distance = (part1.Position - part2.Position).Magnitude
+    local midPoint = (part1.Position + part2.Position) / 2
+    
+    local line = Instance.new("Part")
+    line.Size = Vector3.new(0.1, 0.1, distance) -- Thin line
+    line.Anchored = true
+    line.CanCollide = false
+    line.BrickColor = BrickColor.new("Bright blue")
+    line.Material = Enum.Material.Neon
+    line.CFrame = CFrame.new(midPoint, part2.Position)
+    line.Parent = workspace
 
-local function createESP(player)
-    -- Create ESP for player's character
-    local function onCharacterAdded(character)
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
-        if not humanoidRootPart then return end  -- Exit if the root part is not found
+    -- Optional: Make the lines fade out after a while
+    game:GetService("Debris"):AddItem(line, 5) -- Remove line after 5 seconds
 
-        -- Create the BillboardGui for ESP
-        local esp = Instance.new("BillboardGui")
-        esp.Parent = humanoidRootPart
-        esp.Size = UDim2.new(3, 0, 3, 0)
-        esp.AlwaysOnTop = true
+    return line
+end
 
-        -- Create a Frame to act as the outline
-        local frame = Instance.new("Frame")
-        frame.Parent = esp
-        frame.Size = UDim2.new(1, 0, 1, 0)
-        frame.BackgroundColor3 = blueColor
-        frame.BorderSizePixel = 0
-        frame.Transparency = 0.5 -- Set transparency for the outline effect
+local function updateBones(character)
+    local head = character:FindFirstChild("Head")
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    local leftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftArm")
+    local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightArm")
+    local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftLeg")
+    local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightLeg")
 
-        -- Clean up ESP when character is removed
+    -- Create lines between body parts
+    if head and torso then createBone(head, torso) end
+    if torso and leftArm then createBone(torso, leftArm) end
+    if torso and rightArm then createBone(torso, rightArm) end
+    if torso and leftLeg then createBone(torso, leftLeg) end
+    if torso and rightLeg then createBone(torso, rightLeg) end
+
+    -- You can customize more connections if needed
+end
+
+local function onCharacterAdded(character)
+    if character:WaitForChild("Humanoid") then
+        -- Update the bones every frame
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            -- Clear previously drawn bones
+            for _, v in pairs(workspace:GetChildren()) do
+                if v:IsA("Part") and v.BrickColor == BrickColor.new("Bright blue") then
+                    v:Destroy()
+                end
+            end
+            
+            -- Redraw bones
+            updateBones(character)
+        end)
+
+        -- Clean up the connection when the character is removed
         character.AncestryChanged:Connect(function(_, newParent)
             if not newParent then
-                esp:Destroy() -- Remove ESP when the character is removed
+                connection:Disconnect()
             end
         end)
     end
+end
 
-    -- Connect the CharacterAdded event
+local function createESPForPlayer(player)
     player.CharacterAdded:Connect(onCharacterAdded)
-
-    -- Apply ESP if the character already exists (this handles respawns)
     if player.Character then
         onCharacterAdded(player.Character)
     end
 end
 
--- Apply ESP to all existing players when the script runs
+-- Apply ESP for all existing players
 for _, player in ipairs(Players:GetPlayers()) do
-    createESP(player)
+    createESPForPlayer(player)
 end
 
--- Apply ESP to new players joining
-Players.PlayerAdded:Connect(createESP)
+-- Apply ESP for new players joining the game
+Players.PlayerAdded:Connect(createESPForPlayer)
