@@ -1,5 +1,5 @@
 -- Get necessary services from Roblox
- Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -39,7 +39,7 @@ local function createLine(from, to)
     line.PointB = to
     line.Parent = Workspace
 
-    return line
+    table.insert(lineConnections, line) -- Store line for cleanup
 end
 
 -- Function to update line connections
@@ -51,26 +51,24 @@ local function updateLineConnections()
     lineConnections = {}
 
     local players = Players:GetPlayers()
-    for i = 1, #players do        
+    for i = 1, #players do
+        local playerA = players[i]
+        if not playerA.Character then continue end
+        local rootA = playerA.Character:FindFirstChild("HumanoidRootPart")
+        if not rootA then continue end
+        
         for j = i + 1, #players do
-            local playerA = players[i]
             local playerB = players[j]
+            if not playerB.Character then continue end
+            local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
+            if not rootB then continue end
+            
+            -- Create a ray between the two HumanoidRootParts
+            local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
+            local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
 
-            if playerA.Character and playerB.Character then
-                local rootA = playerA.Character:FindFirstChild("HumanoidRootPart")
-                local rootB = playerB.Character:FindFirstChild("HumanoidRootPart")
-
-                if rootA and rootB then
-                    -- Create a ray between the two HumanoidRootParts
-                    local ray = Ray.new(rootA.Position, (rootB.Position - rootA.Position).unit * (rootB.Position - rootA.Position).magnitude)
-
-                    local hit = Workspace:Raycast(ray.Origin, ray.Direction * (rootB.Position - rootA.Position).magnitude)
-                    if not hit or hit.Instance.Parent ~= playerB.Character then
-                        -- Create a visual line if both players are alive and there is line of sight
-                        local line = createLine(rootA.Position, rootB.Position) 
-                        table.insert(lineConnections, line)
-                    end
-                end
+            if not hit or hit.Instance.Parent ~= playerB.Character then
+                createLine(rootA.Position, rootB.Position) 
             end
         end
     end
