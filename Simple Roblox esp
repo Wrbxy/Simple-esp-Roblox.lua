@@ -1,14 +1,12 @@
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 
 local blueColor = Color3.fromRGB(0, 0, 255)
 
 local function createESP(player)
-    -- Function to apply ESP to a specific character
+    -- Create ESP for player's character
     local function onCharacterAdded(character)
-        -- Make sure the HumanoidRootPart exists
         local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
-        if not humanoidRootPart then return end
+        if not humanoidRootPart then return end  -- Exit if the root part is not found
 
         -- Create the BillboardGui for ESP
         local esp = Instance.new("BillboardGui")
@@ -32,16 +30,16 @@ local function createESP(player)
         end)
     end
 
-    -- Connect character added event
+    -- Connect the CharacterAdded event
     player.CharacterAdded:Connect(onCharacterAdded)
 
-    -- If the player already has a character, apply ESP to it
+    -- Apply ESP if the character already exists (this handles respawns)
     if player.Character then
         onCharacterAdded(player.Character)
     end
 end
 
--- Apply ESP to all existing players
+-- Apply ESP to all existing players when the script runs
 for _, player in ipairs(Players:GetPlayers()) do
     createESP(player)
 end
