@@ -1,99 +1,141 @@
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
--- Table to hold ESP boxes and line connections
-local espBoxes = {}
-local lineConnections = {}
+-- ESP settings
+local ESPEnabled = true
 
--- Function to create an ESP box around a player's character
-local function createESPBox(character)
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
+-- Create GUI
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+local screenGui = Instance.new("ScreenGui", playerGui)
+local toggleButton = Instance.new("TextButton", screenGui)
 
-    -- Create a Box Handle Adornment
-    local espBox = Instance.new("BoxHandleAdornment")
-    espBox.Size = Vector3.new(4, 6, 2)
-    espBox.Color3 = Color3.new(0, 0, 1)
-    espBox.Transparency = 0.5
-    espBox.ZIndex = 10
-    espBox.Adornee = humanoidRootPart
-    espBox.AlwaysOnTop = true
-    espBox.Parent = humanoidRootPart
+-- Button properties
+toggleButton.Size = UDim2.new(0, 100, 0, 50) -- Size of the button
+toggleButton.Position = UDim2.new(0.5, -50, 0.5, -25) -- Center of the screen
+toggleButton.Text = "ESP On"
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- Green background
+toggleButton.TextColor3 = Color3.new(1, 1, 1) -- White text
+toggleButton.Font = Enum.Font.SourceSans
+toggleButton.TextSize = 24
 
-    espBoxes[character] = espBox
+-- Create drawings
+local outlines = {}
+local connections = {}
 
-    -- Cleanup the ESP box when the character leaves
-    character.AncestryChanged:Connect(function(node)
-        if node == nil then
-            espBox:Destroy()
-            espBoxes[character] = nil
-        end
-    end)
+-- Function to create lines and outlines
+local function createLine() 
+    local line = Drawing.new("Line")
+    line.Color = Color3.new(1, 0, 0) -- Red color
+    line.Thickness = 2
+    return line
 end
 
--- Function to create a line between two points
-local function createLine(from, to)
-    local line = Instance.new("LineHandleAdornment")
-    line.Length = (to - from).magnitude
-    line.Color3 = Color3.new(1, 0, 0)
-    line.Transparency = 0
-    line.ZIndex = 10
-    line.AlwaysOnTop = true
-
-    line.PointA = from
-    line.PointB = to
-    line.Parent = Workspace
-
-    table.insert(lineConnections, line)
+local function createOutline() 
+    local outline = Drawing.new("Triangle")
+    outline.Color = Color3.new(1, 1, 0) -- Yellow color
+    outline.Filled = false
+    outline.Thickness = 1
+    return outline
 end
 
--- Function to update line connections
-local function updateLineConnections()
-    -- Clean up existing lines
-    for _, line in ipairs(lineConnections) do
-        line:Destroy()
-    end
-    lineConnections = {}
+-- Draw ESP for a player
+local function drawESP(player)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local rootPart = player.Character.HumanoidRootPart
 
-    local players = Players:GetPlayers()
-    for i = 1, #players - 1 do
-        local playerA = players[i]
-        if not playerA.Character or not playerA.Character:FindFirstChild("HumanoidRootPart") then continue end
-        local rootA = playerA.Character.HumanoidRootPart
+    -- Check if the player is visible
+    local isVisible = rootPart and rootPart:IsPointInRegion3(Workspace.CurrentCamera.CFrame:PointToWorldSpace(rootPart.Position))
 
-        for j = i + 1, #players do
-            local playerB = players[j]
-            if not playerB.Character or not playerB.Character:FindFirstChild("HumanoidRootPart") then continue end
-            local rootB = playerB.Character.HumanoidRootPart
+    if isVisible then
+        local head = player.Character:FindFirstChild("Head")
 
-            -- Create a ray between the two HumanoidRootParts
-            local direction = (rootB.Position - rootA.Position).Unit
-            local distance = (rootB.Position - rootA.Position).Magnitude
+        if head then
+            -- Draw outline for head
+            local outline = createOutline()
+            outline.PointA = Workspace.CurrentCamera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
+            outline.PointB = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position + Vector3.new(0, 2, 0))
+            outline.PointC = Workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position + Vector3.new(-0.5, 0, 0))
+            outline.Visible = true
+            table.insert(outlines, outline)
 
-            local raycastResult = Workspace:Raycast(rootA.Position, direction * distance)
+            -- Draw lines to connect parts
+            for _, part in pairs(player.Character:GetChildren()) do
+                if part:IsA("MeshPart") or part:IsA("Part") then
+                    local partPos = part.Position
+                    local screenPos = Workspace.CurrentCamera:WorldToViewportPoint(partPos)
 
-            if not raycastResult or not raycastResult.Instance:IsDescendantOf(playerB.Character) then
-                createLine(rootA.Position, rootB.Position)
+                    -- Create a line from Head to each part
+                    local connection = createLine()
+                    connection.From = outline.PointA
+                    connection.To = Vector2.new(screenPos.X, screenPos.Y)
+                    connection.Visible = true
+                    table.insert(connections, connection)
+                end
             end
         end
     end
 end
 
--- Function to handle player joining
-local function onPlayerAdded(player)
-    player.CharacterAdded:Connect(function(character)
-        createESPBox(character)
-    end)
-end
+-- Update ESP every frame
+RunService.RenderStepped:Connect(function()
+    if ESPEnabled then
+        -- Clear previous outlines and connections
+        for _, outline in pairs(outlines) do
+            outline:Remove()
+        end
+        outlines = {}
 
--- Connect player added events
-Players.PlayerAdded:Connect(onPlayerAdded)
+        for _, connection in pairs(connections) do
+            connection:Remove()
+        end
+        connections = {}
 
--- Optionally add existing players
-for _, player in ipairs(Players:GetPlayers()) do
-    onPlayerAdded(player)
-end
+        -- Draw ESP for all players
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then 
+                drawESP(player) 
+            end
+        end
+    end
+end)
 
--- Run the ESP update loop
-RunService.RenderStepped:Connect(updateLineConnections)
+-- Toggle ESP when button is clicked
+toggleButton.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    toggleButton.Text = ESPEnabled and "ESP On" or "ESP Off"
+    toggleButton.BackgroundColor3 = ESPEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) -- Change color based on state
+end)
+
+-- Allow dragging the button
+local dragInput, mousePos, startPos
+
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragInput = input
+        mousePos = UserInputService:GetMouseLocation() - toggleButton.AbsolutePosition
+        startPos = toggleButton.Position
+
+        repeat
+            local newPos = UserInputService:GetMouseLocation() - mousePos
+            toggleButton.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
+
+            RunService.RenderStepped:Wait()
+        until not dragInput.UserInputState == Enum.UserInputState.Begin
+
+        dragInput = nil
+    end
+end)
+
+-- Cleanup on player removal
+Players.PlayerRemoving:Connect(function(player)
+    for _, outline in pairs(outlines) do
+        outline:Remove()
+    end
+    for _, connection in pairs(connections) do
+        connection:Remove()
+    end
+end)
