@@ -34,7 +34,7 @@ local function createLine(from, to)
     line.ZIndex = 10
     line.AlwaysOnTop = true
 
-    -- Set the points for the line, adjusting for position
+    -- Set the points for the line
     line.PointA = from
     line.PointB = to
     line.Parent = Workspace
