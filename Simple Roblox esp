@@ -44,7 +44,7 @@ end
 
 -- Function to update line connections
 local function updateLineConnections()
-    -- Clean up existing lines
+    -- Clean up existing lines (if they exist)
     for _, line in ipairs(lineConnections) do
         if line then
             line:Destroy()
@@ -82,56 +82,3 @@ local function cleanupESP(character)
     local espBox = espBoxes[character]
     if espBox then
         espBox:Destroy()
-        espBoxes[character] = nil
-    end
-end
-
--- Function to set up ESP for each player
-local function setupESPForPlayer(player)
-    player.CharacterAdded:Connect(function(character)
-        wait(1) -- Slight delay to ensure the character is fully loaded
-        createESPBox(character)
-
-        local humanoid = character:WaitForChild("Humanoid", 5) -- Wait for humanoid
-        if humanoid then
-            humanoid.Died:Connect(function()
-                cleanupESP(character)
-            end)
-        end
-
-        character.AncestryChanged:Connect(function(_, parent)
-            if not parent then
-                cleanupESP(character)
-            end
-        end)
-    end)
-
-    -- If the character already exists, create the ESP box immediately
-    if player.Character then
-        createESPBox(player.Character)
-
-        local humanoid = player.Character:WaitForChild("Humanoid", 5) -- Wait for humanoid
-        if humanoid then
-            humanoid.Died:Connect(function()
-                cleanupESP(player.Character)
-            end)
-        end
-
-        player.Character.AncestryChanged:Connect(function(_, parent)
-            if not parent then
-                cleanupESP(player.Character)
-            end
-        end)
-    end
-end
-
--- Initialize ESP for all current players already in the game
-for _, player in ipairs(Players:GetPlayers()) do
-    setupESPForPlayer(player)
-end
-
--- Handle new players that join the game
-Players.PlayerAdded:Connect(setupESPForPlayer)
-
--- Update line connections every frame
-RunService.RenderStepped:Connect(updateLineConnections)
