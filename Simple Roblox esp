@@ -44,11 +44,9 @@ end
 
 -- Function to update line connections
 local function updateLineConnections()
-    -- Clean up existing lines (if they exist)
+    -- Clean up existing lines
     for _, line in ipairs(lineConnections) do
-        if line then
-            line:Destroy()
-        end
+        line:Destroy()
     end
     lineConnections = {}
 
@@ -57,7 +55,7 @@ local function updateLineConnections()
         local playerA = players[i]
         if not playerA.Character or not playerA.Character:FindFirstChild("HumanoidRootPart") then continue end
         local rootA = playerA.Character.HumanoidRootPart
-        
+
         for j = i + 1, #players do
             local playerB = players[j]
             if not playerB.Character or not playerB.Character:FindFirstChild("HumanoidRootPart") then continue end
@@ -69,29 +67,27 @@ local function updateLineConnections()
             local ray = Ray.new(rootA.Position, direction * distance)
             local hit = Workspace:Raycast(ray.Origin, ray.Direction * distance)
 
-            -- Ensure the line is drawn only if the ray does not hit the other player
-            if not hit or not hit.Instance:IsDescendantOf(playerB.Character) then
-                createLine(rootA.Position, rootB.Position) 
-            end
+            if not hit then
+                createLine(rootA.Position, rootB.Position) -- Draw line if not hitting anything
+            }
         end
     end
 end
 
--- Function to clean up the ESP box and lines when a character is removed
-local function cleanupESP(character)
-    local espBox = espBoxes[character]
-    if espBox then
-        espBox:Destroy()
-        espBoxes[character] = nil
-    end
+-- Function to handle player joining
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function(character)
+        createESPBox(character) -- Create ESP when the character is added
+    end)
 end
 
--- Function to set up ESP for each player
-local function setupESPForPlayer(player)
-    player.CharacterAdded:Connect(function(character)
-        wait(1) -- Slight delay to ensure the character is fully loaded
-        createESPBox(character)
+-- Connect player added events
+Players.PlayerAdded:Connect(onPlayerAdded)
 
-        local humanoid = character:WaitForChild("Humanoid", 5) -- Wait for humanoid
-        if humanoid then
-            humanoid.Died:Connect(
+-- Optionally add existing players
+for _, player in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(player)
+end
+
+-- Run the ESP update loop
+RunService.RenderStepped:Connect(updateLineConnections)
