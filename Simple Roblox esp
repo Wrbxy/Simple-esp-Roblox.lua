@@ -1,6 +1,9 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+-- Table to hold ESP boxes for tracking
+local espBoxes = {}
+
 -- Function to create ESP box outline
 local function createESPBox(character)
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -9,32 +12,56 @@ local function createESPBox(character)
     espBox.Size = Vector3.new(4, 6, 2) -- Size of the outline box around the player
     espBox.Color3 = Color3.new(0, 0, 1) -- Blue color
     espBox.Transparency = 0.5 -- Semi-transparent
-    espBox.AlwaysOnTop = true
     espBox.ZIndex = 10
     espBox.Adornee = humanoidRootPart
     espBox.Parent = humanoidRootPart -- Attach it to the HumanoidRootPart
 
-    -- Adjust the box's position to be centered on the player
-    runService.RenderStepped:Connect(function()
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            espBox.Adornee = humanoidRootPart
-        else
-            espBox:Destroy() -- Destroy if character disappears
-        end
-    end)
+    -- Store the ESP box for cleanup later
+    espBoxes[character.UserId] = espBox
 
     return espBox
+end
+
+-- Function to clean up ESP box when character or player is removed
+local function cleanupESP(character)
+    if espBoxes[character.UserId] then
+        espBoxes[character.UserId]:Destroy()
+        espBoxes[character.UserId] = nil
+    end
 end
 
 -- Function to set up ESP for the player
 local function setupESPForPlayer(player)
     player.CharacterAdded:Connect(function(character)
         createESPBox(character)
+
+        -- Cleanup when the character is removed
+        character:WaitForChild("Humanoid").Died:Connect(function()
+            cleanupESP(character)
+        end)
+
+        -- Clean up if the character is removed
+        character.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                cleanupESP(character)
+            end
+        end)
     end)
 
     -- If the character already exists, create the ESP box
     if player.Character then
         createESPBox(player.Character)
+
+        -- Cleanup for existing character
+        player.Character:WaitForChild("Humanoid").Died:Connect(function()
+            cleanupESP(player.Character)
+        end)
+
+        player.Character.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                cleanupESP(player.Character)
+            end
+        end)
     end
 end
 
