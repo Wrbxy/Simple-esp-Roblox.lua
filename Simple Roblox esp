@@ -39,7 +39,6 @@ local function setupESPForPlayer(player)
 
         -- Connect to Humanoid Died event to clean up ESP
         local humanoid = character:WaitForChild("Humanoid")
-
         humanoid.Died:Connect(function()
             cleanupESP(character)
         end)
@@ -58,7 +57,6 @@ local function setupESPForPlayer(player)
 
         -- Connect to Humanoid Died event to clean up ESP
         local humanoid = player.Character:WaitForChild("Humanoid")
-
         humanoid.Died:Connect(function()
             cleanupESP(player.Character)
         end)
